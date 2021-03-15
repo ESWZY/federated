@@ -206,6 +206,37 @@ class IntrinsicsTest(parameterized.TestCase):
         return intrinsics.federated_map(
             computations.tf_computation(lambda x: x > 10), x)
 
+  @parameterized.named_parameters(
+      ('non_secure', intrinsics.federated_select),
+      ('secure', intrinsics.federated_secure_select))
+  def test_federated_select_succeeds(self, federated_select):
+
+    @computations.federated_computation
+    def foo():
+      values = ['first', 'second', 'third']
+      server_state = intrinsics.federated_value(values, placements.SERVER)
+
+      max_key_py = len(values)
+      max_key = intrinsics.federated_value(max_key_py, placements.SERVER)
+
+      @computations.tf_computation
+      def get_random_key():
+        return tf.random.uniform(
+            shape=[], minval=0, maxval=max_key_py, dtype=tf.int32)
+
+      client_keys = intrinsics.federated_eval(get_random_key,
+                                              placements.CLIENTS)
+
+      @computations.tf_computation
+      def select_fn(state, key):
+        return tf.gather(state, key)
+
+      val = federated_select(client_keys, max_key, server_state, select_fn)
+      self.assertIsInstance(val, value_base.Value)
+      return val
+
+    self.assert_type(foo, '( -> {string}@CLIENTS)')
+
   def test_federated_sum_with_client_int(self):
 
     @computations.federated_computation(

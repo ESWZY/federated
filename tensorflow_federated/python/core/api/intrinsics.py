@@ -301,6 +301,60 @@ def federated_secure_sum(value, bitwidth):
   return factory.federated_secure_sum(value, bitwidth)
 
 
+def federated_select(client_keys, max_key, server_state, select_fn):
+  """Sends selected values from a server database to clients.
+
+  Args:
+    client_keys: `tff.CLIENTS`-placed `int32` keys used to select the value from
+      `database` to load for each client.
+    max_key: A `tff.SERVER`-placed `int32` which is guaranteed to be greater
+      than any of `client_keys`. Lower values may permit more optimizations.
+    server_state: `tff.SERVER`-placed state used as an input to `select_fn`.
+    select_fn: A function which accepts the state member of `server_state` and a
+      `int32` client key and returns a value to be sent to the client.
+
+  Returns:
+    `tff.CLIENTS`-placed values returned from `select_fn`.
+
+  Raises:
+    TypeError: If `client_keys` is not of type `{int32}@CLIENTS`, if `max_key`
+      is not of type `int32@SERVER`, if `server_state` is not a server-placed
+      value (`STATE@SERVER`), or if `select_fn` is not a function of type
+      `<STATE, int32> -> RESULT`.
+  """
+  factory = intrinsic_factory.IntrinsicFactory(context_stack_impl.context_stack)
+  return factory.federated_select(
+      client_keys, max_key, server_state, select_fn, secure=False)
+
+
+def federated_secure_select(client_keys, max_key, server_state, select_fn):
+  """Sends privately-selected values from a server database to  clients.
+
+  Args:
+    client_keys: `tff.CLIENTS`-placed `int32` keys used to select the value from
+      `database` to load for each client. Unlike `federated_select`,
+      `federated_secure_select` guarantees that the key chosen by each client
+      remains private.
+    max_key: A `tff.SERVER`-placed `int32` which is guaranteed to be greater
+      than any of `client_keys`. Lower values may permit more optimizations.
+    server_state: `tff.SERVER`-placed state used as an input to `select_fn`.
+    select_fn: A function which accepts the state member of `server_state` and a
+      `int32` client key and returns a value to be sent to the client.
+
+  Returns:
+    `tff.CLIENTS`-placed values returned from `select_fn`.
+
+  Raises:
+    TypeError: If `client_keys` is not of type `{int32}@CLIENTS`, if `max_key`
+      is not of type `int32@SERVER`, if `server_state` is not a server-placed
+      value (`STATE@SERVER`), or if `select_fn` is not a function of type
+      `<STATE, int32> -> RESULT`.
+  """
+  factory = intrinsic_factory.IntrinsicFactory(context_stack_impl.context_stack)
+  return factory.federated_select(
+      client_keys, max_key, server_state, select_fn, secure=True)
+
+
 def federated_sum(value):
   """Computes a sum at `tff.SERVER` of a `value` placed on the `tff.CLIENTS`.
 
